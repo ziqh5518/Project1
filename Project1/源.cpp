@@ -9,6 +9,12 @@ typedef struct
 	int lchild, rchild, parent;
 }HTNode;
 
+typedef struct
+{
+	char cd[N];	//存放当前结点的哈夫曼码
+	int start;	//表示cd[start,n0]部分是哈夫曼码
+}HCode;
+
 //构造哈夫曼树
 void CreateHT(HTNode ht[], int n0)
 {
@@ -50,10 +56,36 @@ void CreateHT(HTNode ht[], int n0)
 }
 
 
-//构造哈夫曼树对应测试
+
+//根据哈夫曼树求哈夫曼编码
+void CreateHCode(HTNode ht[], HCode hcd[], int n0)
+{
+	int i, f, c;
+	HCode hc;
+	for (i = 0; i < n0; i++)
+	{
+		hc.start = n0;
+		c = i;
+		f = ht[i].parent;
+		while (f != -1)
+		{
+			if (ht[f].lchild == c)
+				hc.cd[hc.start--] = '0';
+			else
+				hc.cd[hc.start--] = '1';
+			c = f;
+			f = ht[f].parent;
+		}
+		hc.start++;
+		hcd[i] = hc;
+	}
+}
+
+//根据哈夫曼树求哈夫曼编码测试（通过）
 int main()
 {
 	HTNode ht[N];
+	HCode hcd[N];
 	ht[0].data = 'a';
 	ht[0].weight = 2;
 
@@ -69,11 +101,43 @@ int main()
 	ht[4].data = 'e';
 	ht[4].weight = 5;
 
-	CreateHT(ht,5);
+	CreateHT(ht, 5);
+	CreateHCode(ht, hcd, 5);
 
-	for (int i = 0; i < 7; i++)
-		cout << ht[i].weight << " ";
-	
+	cout << hcd[3].cd[hcd->start] << " "
+		<< hcd[3].cd[hcd->start + 1] << " "
+		<< hcd[3].cd[hcd->start + 2] << " "
+		<< hcd[3].cd[hcd->start + 3];
+		
 
 	return 0;
 }
+
+
+//构造哈夫曼树对应测试（通过）
+//int main()
+//{
+//	HTNode ht[N];
+//	ht[0].data = 'a';
+//	ht[0].weight = 2;
+//
+//	ht[1].data = 'b';
+//	ht[1].weight = 7;
+//
+//	ht[2].data = 'c';
+//	ht[2].weight = 3;
+//
+//	ht[3].data = 'd';
+//	ht[3].weight = 1;
+//
+//	ht[4].data = 'e';
+//	ht[4].weight = 5;
+//
+//	CreateHT(ht,5);
+//
+//	for (int i = 0; i < 7; i++)
+//		cout << ht[i].weight << " ";
+//	
+//
+//	return 0;
+//}
