@@ -1,24 +1,7 @@
-/*
-必做内容：
-一个完整的系统应具有以下功能：
-(1) I：初始化（Initialization）。从终端读入字符集大小n，以及n个字符和n个权值，
-	建立霍夫曼树，并将它存于文件hfmTree中。
-(2) E：编码（Encoding）。利用已建好的霍夫曼树（如不在内存，则从文件hfmTree中读入），对文件ToBeTran中的正文进行编码，然后将结果存入文件CodeFile中。
-(3) D：译码（Decoding）。利用已建好的霍夫曼树将文件CodeFile中的代码进行译码，
-	结果存入文件Textfile中。
-================================================================================
-(1) 编码结果以文本方式存储在文件Codefile中。
-(2) 用户界面可以设计为“菜单”方式：显示上述功能符号，再加上“Q”，表示退出
-	运行Quit。请用户键入一个选择功能符。此功能执行完毕后再显示此菜单，直至某次
-	用户选择了“Q”为止。
-(3) 在程序的一次执行过程中，第一次执行I，D或C命令之后，霍夫曼树已经在内存了，
-	不必再读入。每次执行中不一定执行I命令，因为文件hfmTree可能早已建好。
-
-*/
-
 #include<iostream>
 #include<fstream>
 #include<string>
+#include<cstdio>
 using namespace std;
 #define N 100
 
@@ -99,7 +82,7 @@ void CreateHCode(HTNode ht[], HCode hcd[], int n0)
 	}
 }
 
-//3、初始化哈夫曼树并保存到文件中
+//3、I：初始化哈夫曼树并保存到文件中
 void Initialization(string filename)
 {
 	int n = 0;
@@ -111,8 +94,14 @@ void Initialization(string filename)
 
 	for (int i = 0; i < n; i++)
 	{
+		char c;
 		cout << "输入字符" << i + 1 << ":";
-		cin >> ht[i].data;
+		//cin >> ht[i].data;
+		getchar();
+		cin.get(c);
+		ht[i].data = c;
+		if (ht[i].data == ' ')
+			ht[i].data = '#';
 		cout << "输入字符" << i + 1 << "对应的权重：";
 		cin >> ht[i].weight;
 	}
@@ -136,49 +125,174 @@ void Initialization(string filename)
 
 }
 
+//4、E：编码，对文件ToBeTran中正文进行编码，将结果存入文件CodeFile
+void Encoding(string inputFile, string outputFile, string hfmTree)
+{
+	HCode hcd[N] = {};
+	//从hfmTree文件中读出哈夫曼树信息并初始化哈夫曼树
+	ifstream ifs(hfmTree);
+	int n;
+	ifs >> n;
+	HTNode ht[N] = {};
+	for (int i = 0; i < n; i++)
+	{
+		ifs >> ht[i].data >> ht[i].weight;
+		if (ht[i].data=='#')
+		{
+			ht[i].data = ' ';
+		}
+		cout << ht[i].data << " " << ht[i].weight << endl;
+	}
+	ifs.close();
+
+	CreateHT(ht, n);
+	CreateHCode(ht, hcd, n);
+	
+	//打开输入文件和输出文件
+	ifstream ifsn(inputFile);
+	ofstream ofsn(outputFile);
+
+	if (ifsn.is_open() && ofsn.is_open())
+	{
+		//读取输入文件内容并进行编码，将结果写入输出文件
+		char ch;
+		while (ifsn.get(ch))
+		{
+			for (int i = 0; i < n; i++)
+			{
+				if (ht[i].data == ch)
+				{
+					ofsn <<hcd[i].cd +( hcd[i].start); //?????!!!!!
+					break;
+				}
+			}
+		}
+		ifsn.close();
+		ofsn.close();
+
+	}
+	else
+	{
+		cout << "输入或输出文件打开失败！" << endl;
+	}
+}
+
+
+//5、D：译码，利用已经建好的哈夫曼表将文件CodeFile中的代码进行译码，结果
+//	存入文件Textfile中
+void Decoding(string inputfile, string outfile, string hfmTree)
+{
+	HCode hcd[N] = {};
+	//从hfmTree中读入哈夫曼信息并初始化哈夫曼树
+	ifstream  ifs(hfmTree);
+	int n;
+	ifs >> n;
+	HTNode ht[N] = {};
+	for (int i = 0; i < n; i++)
+	{
+		ifs >> ht[i].data >> ht[i].weight;
+		if (ht[i].data == '#')
+		{
+			ht[i].data = ' ';
+		}
+	}
+	
+	ifs.close();
+
+	CreateHT(ht, n);
+	CreateHCode(ht, hcd, n);
+
+	ifstream ifsn(inputfile);
+	ofstream ofsn(outfile);
+
+	string code;
+	if (!ifsn)
+	{
+		cout << "文件打开错误！" << endl;
+	}
+	else
+	{
+		int i = 0;
+		int node = 2 * n - 2;
+		char bit;
+		while (ifsn.get(bit))
+		{
+			if (bit == '0')
+			{
+				node = ht[node].lchild;
+			}
+			else if (bit == '1')
+			{
+				node = ht[node].rchild;
+			}
+			if (ht[node].lchild == -1 && ht[node].rchild == -1)
+			{
+				ofsn << ht[node].data;
+				node = 2 * n - 2;
+			}
+		}
+
+		ifsn.close();
+		ofsn.close();
+	}
+	
+}
+
+void UI()
+{
+	cout << "----------------------------------------------哈夫曼编码译码操作系统------------------------------------------" << endl<<endl;
+	cout << "I：初始化哈夫曼树。存入文件【hfmTree.txt】"<<endl;
+	cout << "E：编码。利用文件【hfmTree.txt】中的信息对【ToBeTrain.txt】文件中的正文进行编码，并将结果输出到文件【CodeFile.txt】中" << endl;
+	cout << "D：译码。利用已经建好的哈夫曼树，将文件【CodeFile.txt】中的内容进行译码，结果存入文件【TextFile.txt】中" << endl ;
+	cout << "Q:退出系统。" << endl << endl;
+	cout << "---------------------------------------------------------------------------------------------------------------" << endl;
+}
+
+void menu(char c, string filename, string inputFileName, string outputFileName, string newfile)
+{
+	switch (c)
+	{
+	case 'I':
+		Initialization(filename);
+		cout << "哈夫曼树创建完成！" << endl;
+		break;
+
+	case 'E':
+		Encoding(inputFileName, outputFileName, filename);
+		cout << "编码完成！" << endl;
+		break;
+
+	case 'D':
+		Decoding(outputFileName, newfile, filename);
+		cout << "译码输出完成！" << endl;
+		break;
+	
+	}
+}
 
 //3、初始化哈夫曼树并保存到文件中 测试
 int main()
 {
 	string filename = "hfmTree.txt";
-	Initialization(filename);
+	string inputFileName = "ToBeTran.txt";
+	string outputFileName = "CodeFile.txt";
+	string newfile = "Textfile.txt";
+	UI();
+	char c;
+	cout << "请输入你要选择的功能" << endl;
+	cin >> c;
+	while (1)
+	{
+		if (c == 'q'||c == 'Q') {
+			return 0;
+		}
+		system("cls");
+		UI();
+		menu(c, filename, inputFileName, outputFileName, newfile);
+		cout << "请输入你要选择的功能" << endl;
+		cin >> c;
+		system("pause");
+	}
 
 	return 0;
 }
-
-
-
-//根据哈夫曼树求哈夫曼编码测试（通过）
-//int main()
-//{
-//	HTNode ht[N];
-//	HCode hcd[N];
-//	ht[0].data = 'a';
-//	ht[0].weight = 2;
-//
-//	ht[1].data = 'b';
-//	ht[1].weight = 7;
-//
-//	ht[2].data = 'c';
-//	ht[2].weight = 3;
-//
-//	ht[3].data = 'd';
-//	ht[3].weight = 1;
-//
-//	ht[4].data = 'e';
-//	ht[4].weight = 5;
-//
-//	CreateHT(ht, 5);
-//	CreateHCode(ht, hcd, 5);
-//
-//	cout << hcd[3].cd[hcd->start] << " "
-//		<< hcd[3].cd[hcd->start + 1] << " "
-//		<< hcd[3].cd[hcd->start + 2] << " "
-//		<< hcd[3].cd[hcd->start + 3];
-//		
-//
-//	return 0;
-//}
-
-//
-
